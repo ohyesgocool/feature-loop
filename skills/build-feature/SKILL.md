@@ -104,11 +104,19 @@ For each phase, in order, without pausing between green phases:
    always at phase end — **unpiped**, output to a log file, grep the log after; never gate on a
    pipe's exit code. Fix reds inside the phase. New tests must survive CI conditions (bare env,
    mocked heavy imports), not just your machine.
-5. **Commit granularly**: one commit per logical change — a phase containing three distinct
-   changes gets three commits, never one catch-all. Each message carries the right prefix
-   (`feat:` / `fix:` / `refactor:`) and says specifically what that commit does; a reviewer
-   reading `git log --oneline` should be able to follow the build step by step. Never commit
-   `.env`, secrets, or generated noise.
+5. **Commit granularly, with messages a maintainer would write**: one commit per logical
+   change — a phase containing three distinct changes gets three commits, never one
+   catch-all; a reviewer reading `git log --oneline` should follow the build step by step.
+   Messages follow the classic seven rules, adapted to prefixes:
+   - **Subject** = `<prefix>: <imperative summary>` — prefix from `feat:` / `fix:` /
+     `refactor:` / `docs:` / `test:` / `chore:`, summary in the imperative mood: it must
+     complete *"if applied, this commit will …"* (`add csv export endpoint`, never `added`
+     or `adds`).
+   - **≤ 50 characters, hard cap 20 words, no trailing period.** If the change won't
+     summarize inside that, the commit is too big — split it.
+   - **What and why, not how** — the diff already shows how. When the why needs room, add a
+     body after a blank line, wrapped at 72 characters; most granular commits need no body.
+   Never commit `.env`, secrets, or generated noise.
 6. **Phase report** (a few lines, printed as you go): what was built, files touched, gate status,
    plus any entries added to the hack ledger or synchronization ledger this phase.
 
@@ -261,8 +269,9 @@ migrations yourself.
   ledger on a feature with shared writes is a smell, question it.
 - **Every changed line traces to the plan.** No drive-by refactors, no adjacent "improvements", no
   style rewrites. Orphans your change created, you clean; pre-existing mess you report.
-- **Granular commits, and the MR is the finish line.** One commit per logical change, each message
-  specific enough that the log reads as the build's story. A finished plan without its MR isn't
+- **Granular commits, and the MR is the finish line.** One commit per logical change, each
+  subject imperative and ≤ 50 characters — the oneline log reads as the build's story, and a
+  subject that won't fit the cap means the commit needs splitting. A finished plan without its MR isn't
   finished — push and raise it without asking, all four description sections (Problem / Solution /
   Technical details / Review notes) filled honestly, none skipped, none boilerplate.
 - **Gates are unpiped and total.** Type-check + tests per change, full suite + build + consumer

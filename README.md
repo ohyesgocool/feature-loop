@@ -104,7 +104,7 @@ Give it a few paragraphs on what you want. It studies the codebase first (never 
 
 ### `/build-feature` — disciplined implementer
 
-Branches **fresh from main**, reads the plan line by line, re-grounds every phase in the current code, then builds with clean-code discipline: SOLID applied not recited, reuse before writing (more code = more maintenance surface), surgical changes only. Two ledgers keep it honest — a **hack ledger** (a forced workaround exists only with a `HACK:` comment naming the constraint) and a **synchronization ledger** (async by default; every deliberate sync point records the invariant it protects). Every phase gates on type-check + tests; commits are granular; the finish line is always an MR with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
+Branches **fresh from main**, reads the plan line by line, re-grounds every phase in the current code, then builds with clean-code discipline: SOLID applied not recited, reuse before writing (more code = more maintenance surface), surgical changes only. Two ledgers keep it honest — a **hack ledger** (a forced workaround exists only with a `HACK:` comment naming the constraint) and a **synchronization ledger** (async by default; every deliberate sync point records the invariant it protects). Every phase gates on type-check + tests; commits are granular with 50-character imperative subjects (the classic seven rules); the finish line is always an MR with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
 
 ### `/mr-review` — independent external reviewers
 
