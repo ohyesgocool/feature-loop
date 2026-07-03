@@ -1,7 +1,7 @@
 {
   "name": "feature-workflow",
-  "version": "1.1.0",
-  "description": "Feature lifecycle skills for Claude Code: /plan-feature, /build-feature, /mr-review (external AI reviewers), /address-review",
+  "version": "1.2.0",
+  "description": "Feature lifecycle skills for Claude Code: /ship-feature (the whole loop, one command, with a merge gate), /plan-feature, /build-feature, /mr-review (external AI reviewers), /address-review",
   "author": {
     "name": "Gokul",
     "url": "https://github.com/ohyesgocool"

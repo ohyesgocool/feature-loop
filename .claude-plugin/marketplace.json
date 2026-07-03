@@ -8,7 +8,7 @@
     {
       "name": "feature-workflow",
       "source": "./",
-      "description": "Four skills covering the feature lifecycle: /plan-feature (product-owner + architect planning), /build-feature (disciplined plan execution ending in an MR/PR), /mr-review (independent external-AI reviews from OpenAI GPT + xAI Grok posted as MR comments), /address-review (review-comment triage and resolution)"
+      "description": "Five skills covering the feature lifecycle: /ship-feature (brief → plan → build → MR → external review → fix → re-review until clean → merge gate with ask/auto flag), /plan-feature (product-owner + architect planning), /build-feature (disciplined plan execution ending in an MR/PR), /mr-review (independent external-AI reviews from OpenAI GPT + xAI Grok posted as MR comments), /address-review (review-comment triage and resolution)"
     }
   ]
 }
