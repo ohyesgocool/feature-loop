@@ -83,6 +83,7 @@ cp -r feature-loop/skills/* ~/.claude/skills/
 | [`/mr-review`](skills/mr-review/SKILL.md) | independent external reviewers | "review this MR" |
 | [`/address-review`](skills/address-review/SKILL.md) | honest triage + resolution | "address the review" |
 | [`/land`](skills/land/SKILL.md) | post-merge release engineer | "land the merge" |
+| [`/loop-stats`](skills/loop-stats/SKILL.md) | the loop's own dashboard | "is the loop working?" |
 
 ### `/ship-feature` — the loop
 
@@ -95,6 +96,9 @@ Runs plan → build → review → address, re-reviewing until **convergence**: 
 | `--merge=never` | reports and leaves the MR open |
 | `--max-rounds=N` *(default 3)* | honest exit if reviewers keep finding things |
 | `--autonomous` | planner records defaults instead of asking questions |
+| `--resume` | continue an interrupted loop from its recorded stage and round |
+
+The loop is **crash-safe**: state is persisted to `.loop/<slug>.state.json` (gitignore `.loop/`) at every stage boundary, every stage is idempotent on re-entry, and a loop that died with its session resumes instead of restarting.
 
 Built-in safeguards: **no-progress detection** (a finding that survives two rounds stops the loop instead of thrashing — a human call beats a fourth attempt), **honest convergence** (threads are never resolved just to make the loop exit), and the sub-skills' hard stops (architectural concern, red build, red pipeline, merge conflicts) always surface to you. The loop makes routine iteration autonomous — it never makes judgment calls autonomous.
 
@@ -108,7 +112,13 @@ Branches **fresh from main**, reads the plan line by line, re-grounds every phas
 
 ### `/mr-review` — independent external reviewers
 
-Sends the MR's title, description, and diff to each configured reviewer and posts each brief **verbatim** as its own MR comment: OpenAI GPT for a correctness-first implementation brief (severity-ranked, `file:line`-cited, fixes and tests included), xAI Grok for a quality review (DRY, cohesion, naming, testability). Review-only. Large diffs are truncated *with disclosure* — omitted files are named to the reviewers so they can't produce false "file is missing" findings. A reviewer is enabled simply by its API key being present.
+Sends the MR's title, description, and diff to each configured reviewer and posts each brief **verbatim** as its own MR comment: OpenAI GPT for a correctness-first implementation brief (severity-ranked, `file:line`-cited, fixes and tests included), xAI Grok for a quality review (DRY, cohesion, naming, testability). Review-only. A reviewer is enabled simply by its API key being present.
+
+Three things make the reviews efficient rather than noisy:
+
+- **Static pre-pass first** — gitleaks, semgrep (when installed) and a built-in migration lint run before any LLM call; machine-checkable findings post once, and LLM tokens go to judgment calls.
+- **Context pack** — reviewers get the project's conventions and the plan's recorded decisions alongside the diff, killing the context-gap false positives that waste triage time. Hard rule: the pack informs, it never defends the diff.
+- **Delta re-review** — round 2+ reviews only the changes since the last reviewed commit, with each prior finding's outcome attached, so reviewers verify fixes instead of re-raising them. Large diffs are still truncated *with disclosure* so nothing gets reported as falsely missing.
 
 ### `/address-review` — honest triage + resolution
 
@@ -127,6 +137,10 @@ Tally: Error path ×4 · Consistency ×2 · Edge case ×1
 ```
 
 `/address-review` appends a forward-looking rule per valid finding; `/build-feature` reads the ledger before coding and re-checks the diff against the top categories in its verification sweep. The success metric: external reviewers stop finding the same category twice. Because it's a committed file, the learning is shared by every agent session — and every human — that touches the repo.
+
+### `/loop-stats` — is the loop actually working?
+
+The loop records itself: every run appends outcome, rounds-to-convergence, lead time, and token spend to `docs/loops/metrics.jsonl`; every triage appends per-reviewer valid/partial/invalid tallies and finding categories. `/loop-stats` turns that into answers an engineering lead actually asks: is convergence getting faster, which reviewer is earning its tokens (the precision scorecard — a reviewer under ~40% precision is generating noise), what does a loop cost, and — the key one — do blind-spot lessons actually stop their category from recurring. It ends with the single highest-leverage change the numbers support. Strictly read-only, never fabricates a number, and says "sample too small" instead of inventing trends.
 
 ### `/land` — post-merge release engineer
 
