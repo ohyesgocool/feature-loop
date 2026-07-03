@@ -8,7 +8,7 @@
     {
       "name": "feature-workflow",
       "source": "./",
-      "description": "Six skills covering the feature lifecycle: /ship-feature (brief → plan → build → MR → external review → fix → re-review until clean → merge gate with ask/auto flag), /plan-feature (product-owner + architect planning), /build-feature (disciplined plan execution ending in an MR/PR, primed by the blind-spot ledger), /mr-review (independent external-AI reviews from OpenAI GPT + xAI Grok posted as MR comments), /address-review (review-comment triage and resolution, feeding the self-learning blind-spot ledger), /land (post-merge landing runbook: pipelines, migrations, deploy order, canary verification)"
+      "description": "Seven skills covering the feature lifecycle: /ship-feature (brief → plan → build → MR → external review → fix → re-review until clean → merge gate; crash-safe with --resume), /plan-feature (product-owner + architect planning), /build-feature (disciplined plan execution ending in an MR/PR, primed by the blind-spot ledger), /mr-review (independent external-AI reviews with context pack, static pre-pass, and delta re-review), /address-review (review-comment triage and resolution, feeding the self-learning blind-spot ledger and loop metrics), /land (post-merge landing runbook: pipelines, migrations, deploy order, canary verification), /loop-stats (telemetry dashboard: convergence, reviewer precision scorecard, cost, ledger effectiveness)"
     }
   ]
 }

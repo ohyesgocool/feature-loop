@@ -1,7 +1,7 @@
 {
   "name": "feature-workflow",
-  "version": "2.0.0",
-  "description": "Feature lifecycle skills for AI coding agents: /ship-feature (the whole loop, one command, with a merge gate), /plan-feature, /build-feature, /mr-review (independent external reviewers), /address-review (with a self-learning blind-spot ledger), /land (post-merge runbook: migrations, deploy order, canary)",
+  "version": "2.1.0",
+  "description": "Feature lifecycle skills for AI coding agents: /ship-feature (the whole loop, crash-safe with --resume, merge gate), /plan-feature, /build-feature, /mr-review (independent external reviewers with context pack, static pre-pass, delta re-review), /address-review (self-learning blind-spot ledger), /land (post-merge runbook), /loop-stats (telemetry: convergence, reviewer scorecard, cost, ledger effectiveness)",
   "author": {
     "name": "Gokul",
     "url": "https://github.com/ohyesgocool"
