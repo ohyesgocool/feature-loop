@@ -1,0 +1,9 @@
+{
+  "name": "feature-workflow",
+  "version": "1.0.0",
+  "description": "Plan → build → review lifecycle skills for Claude Code: /plan-feature, /build-feature, /address-review",
+  "author": {
+    "name": "Gokul",
+    "url": "https://github.com/ohyesgocool"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "claude-feature-workflow",
+  "owner": {
+    "name": "Gokul",
+    "url": "https://github.com/ohyesgocool"
+  },
+  "plugins": [
+    {
+      "name": "feature-workflow",
+      "source": "./",
+      "description": "Three skills covering the feature lifecycle: /plan-feature (product-owner + architect planning), /build-feature (disciplined plan execution ending in an MR/PR), /address-review (review-comment triage and resolution)"
+    }
+  ]
+}
