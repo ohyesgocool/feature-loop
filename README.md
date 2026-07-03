@@ -1,6 +1,10 @@
 # Claude Feature Workflow
 
-Six [Claude Code](https://claude.com/claude-code) skills that cover the full lifecycle of shipping a feature — from a rough idea to a change that is merged, independently reviewed, and verified in production:
+**Loop engineering for [Claude Code](https://claude.com/claude-code): dump a feature brief, get back a planned, built, independently-reviewed, merge-ready change — and a system that gets better every time it runs.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-blue)](#install)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 ```
                         /ship-feature  (the loop, one command)
@@ -21,19 +25,57 @@ Six [Claude Code](https://claude.com/claude-code) skills that cover the full lif
                                deploy order → canary → SHIPPED)
 ```
 
-Two ideas make this more than a pipeline. First: **the model that writes the code never reviews its own work** — independent external models (OpenAI GPT, xAI Grok) review every MR with fresh eyes, and Claude triages their findings honestly, fixing what's real and dismissing what isn't, on the record. Second: **the loop learns** — every valid finding's "why I missed it" is written to a blind-spot ledger that the builder reads before the next feature, so reviewers stop finding the same category of bug twice. Each skill works standalone; `/ship-feature` chains the middle four, and `/land` takes the merge to production.
+## Why
 
-## The skills
+AI coding agents are good at writing code and terrible at grading their own homework. This project structures the work the way a disciplined engineering team would:
 
-### `/ship-feature` — the loop, one command
+- **A product owner** who studies the codebase and challenges the brief before anything is built (`/plan-feature`)
+- **An engineer** who executes the plan surgically, commits granularly, and always ships the MR with a reviewable description (`/build-feature`)
+- **Independent reviewers** — *different models* (OpenAI GPT, xAI Grok) that never saw the code being written, so they don't share the author's blind spots (`/mr-review`)
+- **An honest author response** — every review comment triaged against the real diff, fixed or dismissed *with reasons, on the record* (`/address-review`)
+- **A release engineer** who takes the merge to production off a written runbook and doesn't call it shipped until the canary is clean (`/land`)
+- **A retro that actually changes behavior** — every valid finding's "why I missed it" is written to a ledger the builder reads before the next feature, so reviewers stop finding the same category of bug twice
 
-Dump a feature brief and walk away:
+`/ship-feature` chains the middle four into a self-running loop with an explicit merge gate. Every skill also works standalone.
+
+## Quick start
+
+```
+/plugin marketplace add ohyesgocool/claude-feature-workflow
+/plugin install feature-workflow@claude-feature-workflow
+```
+
+Then, in any repo:
 
 ```
 /ship-feature Add CSV export to the reports page — finance needs month-end data in Excel
 ```
 
-It plans (asking its clarifying questions up front — the loop's one designed touchpoint), builds and raises the MR, gets the external reviews, addresses them, and **re-reviews until convergence**: zero valid findings (or all verdicts "No blocking issues"), every thread answered, CI green. Then the merge gate:
+It asks its clarifying questions up front (the loop's one designed touchpoint), then: plan → build → MR → external review → fixes → re-review until clean → **READY TO MERGE**. Say "merge it", or run with `--merge=auto` to skip the gate.
+
+Prefer manual installation? Clone and copy:
+
+```bash
+git clone https://github.com/ohyesgocool/claude-feature-workflow.git
+cp -r claude-feature-workflow/skills/* ~/.claude/skills/
+```
+
+New Claude Code sessions pick the skills up automatically.
+
+## The skills
+
+| Skill | Role | Standalone use |
+|---|---|---|
+| [`/ship-feature`](skills/ship-feature/SKILL.md) | the loop, one command | "ship this feature" |
+| [`/plan-feature`](skills/plan-feature/SKILL.md) | product owner + architect | "plan this" |
+| [`/build-feature`](skills/build-feature/SKILL.md) | disciplined implementer | "build this plan" |
+| [`/mr-review`](skills/mr-review/SKILL.md) | independent external reviewers | "review this MR" |
+| [`/address-review`](skills/address-review/SKILL.md) | honest triage + resolution | "address the review" |
+| [`/land`](skills/land/SKILL.md) | post-merge release engineer | "land the merge" |
+
+### `/ship-feature` — the loop
+
+Runs plan → build → review → address, re-reviewing until **convergence**: a round with zero valid findings (or all reviewer verdicts "No blocking issues"), every thread answered, CI green. Then the merge gate:
 
 | Flag | Behavior |
 |---|---|
@@ -43,81 +85,41 @@ It plans (asking its clarifying questions up front — the loop's one designed t
 | `--max-rounds=N` *(default 3)* | honest exit if reviewers keep finding things |
 | `--autonomous` | planner records defaults instead of asking questions |
 
-Safeguards: no-progress detection (a finding surviving two rounds stops the loop instead of thrashing), honest convergence (threads are never resolved just to exit), and the sub-skills' hard stops (architectural concern, red build, red pipeline, merge conflicts) always surface to you.
+Built-in safeguards: **no-progress detection** (a finding that survives two rounds stops the loop instead of thrashing — a human call beats a fourth attempt), **honest convergence** (threads are never resolved just to make the loop exit), and the sub-skills' hard stops (architectural concern, red build, red pipeline, merge conflicts) always surface to you. The loop makes routine iteration autonomous — it never makes judgment calls autonomous.
 
-### `/plan-feature` — product-owner + architect planner
+### `/plan-feature` — product owner + architect
 
-Give it a few paragraphs on what you want to build. It:
+Give it a few paragraphs on what you want. It studies the codebase first (never plans from memory — every integration point cited as `file:line`), frames the feature by **what the user achieves** rather than what gets built, asks only the genuinely blocking questions (batched, each with a recommended answer), audits every proposed UI element against *less is more*, proves the design is buildable against real code, and writes a phased plan where each phase is small and self-contained enough for a coding agent to execute without coming back with questions. Output: a plan file in `docs/plans/`.
 
-1. **Studies your codebase first** — structure, conventions, the nearest existing feature, reusable pieces — and never plans from memory. Every integration point is cited as `file:line`.
-2. **Frames the feature by what the user achieves** — outcome, not mechanism — and names the smallest version that delivers it.
-3. **Challenges the brief** — one batched round of only the genuinely blocking questions, each with a recommended answer. Defaultable decisions are made and *recorded* so you can veto by reading.
-4. **Audits every UI element** against "less is more": each button/field/label must name what the user achieves by it, or it's cut. Empty/loading/error states are designed in the plan, not discovered during coding.
-5. **Proves feasibility** against real code, then writes a phased plan — small self-contained phases (goal, files, elaborate changes, verify step, commit message) that a coding agent can execute without coming back with questions.
+### `/build-feature` — disciplined implementer
 
-Output: a plan file in `docs/plans/`, ready for `/build-feature`.
+Branches **fresh from main**, reads the plan line by line, re-grounds every phase in the current code, then builds with clean-code discipline: SOLID applied not recited, reuse before writing (more code = more maintenance surface), surgical changes only. Two ledgers keep it honest — a **hack ledger** (a forced workaround exists only with a `HACK:` comment naming the constraint) and a **synchronization ledger** (async by default; every deliberate sync point records the invariant it protects). Every phase gates on type-check + tests; commits are granular; the finish line is always an MR with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
 
-### `/build-feature` — disciplined plan executor
+### `/mr-review` — independent external reviewers
 
-Takes the plan file (defaults to the newest in `docs/plans/`) and:
+Sends the MR's title, description, and diff to each configured reviewer and posts each brief **verbatim** as its own MR comment: OpenAI GPT for a correctness-first implementation brief (severity-ranked, `file:line`-cited, fixes and tests included), xAI Grok for a quality review (DRY, cohesion, naming, testability). Review-only. Large diffs are truncated *with disclosure* — omitted files are named to the reviewers so they can't produce false "file is missing" findings. A reviewer is enabled simply by its API key being present.
 
-- Branches **fresh from main** — always pulls latest, never builds on a stale base.
-- Reads the plan **whole, line by line**, then re-grounds every phase in the current code before writing.
-- Codes with clean-code discipline: SOLID applied not recited, DRY with judgment, reuse-first, surgical changes only.
-- **No unflagged hacks**: a forced workaround exists only with a `HACK:` comment and an entry in the hack ledger.
-- **Async by default, synchronized by justification**: every deliberate sync point (transaction, unique constraint, idempotency key, lock) goes in a synchronization ledger with the invariant it protects.
-- Gates every phase with type-check + tests, commits granularly (one commit per logical change), and finishes with a full verification sweep including a grep audit of every consumer of every changed surface.
-- **Always raises the MR/PR** when green, with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
+### `/address-review` — honest triage + resolution
 
-Two hard stops only: an architectural concern (it asks, with a recommendation) and a red build (it never pushes red).
+Correlates every comment **line by line against the actual diff**, then verdicts: **VALID** (fix it), **PARTIAL** (right instinct, wrong specifics — fix the real concern), **INVALID** (dismissed, citing the specific context the reviewer couldn't see; burden of proof is on dismissal). For each valid finding it answers *why I missed it* with a real blind-spot category, implements the fixes (one commit per comment), pushes on a green build, and replies to every thread. Then it feeds the ledger ↓.
 
-### `/mr-review` — independent external-AI review
+### The blind-spot ledger — how the loop learns
 
-The stage where different models look at the code. It fetches the MR's title, description, and diff, sends them to each configured external reviewer, and posts each reviewer's brief as a separate MR comment — verbatim, unedited:
+`docs/reviews/blind-spots.md`, committed to *your* repo:
 
-- **OpenAI GPT** — correctness-first implementation brief: bugs, security, data loss, races, missing tests, performance. Severity-ranked, every issue citing `file:line`, each with a recommended fix and the tests to add.
-- **xAI Grok** — quality review: DRY, over/under-abstraction, naming, cohesion, coupling, testability, consistency with local patterns.
+```markdown
+# Blind-spot ledger
+Tally: Error path ×4 · Consistency ×2 · Edge case ×1
 
-Review-only: it never modifies code, approves, or merges. Large diffs are truncated **with disclosure** — omitted files are named to the reviewers so they don't produce false "file is missing" findings. A reviewer is enabled simply by its API key being present (see [Configuration](#configuration)).
-
-### `/address-review` — review-comment triage and resolution
-
-Closes the loop. It:
-
-- Pulls every comment, splits compound notes, and correlates each one **line by line against the actual diff** — never judging from the reviewer's summary alone.
-- Assigns honest verdicts: **VALID** (fix it), **PARTIAL** (right instinct, wrong specifics — fix the real concern), **INVALID** (dismissed, citing the specific context the reviewer couldn't see).
-- For every valid finding, answers **"why I missed it"** with a real blind-spot category — the learning signal is the point.
-- Implements all valid fixes (separate commit per comment), pushes on a green build, and replies to every thread — fixed ones marked done with the commit, invalid ones explained. The only hard stop is a red build.
-- **Feeds the blind-spot ledger**: every lesson is appended to `docs/reviews/blind-spots.md` as a forward-looking rule, with a running category tally. `/build-feature` reads that file before coding and re-checks the diff against the top categories in its verification sweep — the loop's memory, committed to the repo where the whole team (human or agent) inherits it.
-
-### `/land` — post-merge landing
-
-Merged is not shipped. `/land` executes the project's landing runbook (`docs/landing.md` — deploy order, how migrations apply, health checks, smoke checks, canary window, rollback path; drafted automatically on first run by inspecting your CI config and migrations, then confirmed with you):
-
-- Watches the main pipeline(s) to green, applies migrations — or, for production access only a human holds, prints the **exact** commands and waits for your confirmation (steps are explicitly tagged `[claude]` or `[human]`).
-- Deploys in the runbook's order, health-checking each service before moving to the next.
-- Runs smoke checks and holds a canary window before claiming **SHIPPED**.
-- Hard stops on a red pipeline, failed migration, or failed canary — rollback is prepared and offered with evidence, never auto-executed.
-
-## Install
-
-### Option 1: as a plugin (recommended — one command)
-
-In Claude Code:
-
-```
-/plugin marketplace add ohyesgocool/claude-feature-workflow
-/plugin install feature-workflow@claude-feature-workflow
+- [2026-07-03 !87 C1] Error path — every new I/O path gets its failure
+  branch coded and tested before the happy path ships.
 ```
 
-### Option 2: copy the skills
+`/address-review` appends a forward-looking rule per valid finding; `/build-feature` reads the ledger before coding and re-checks the diff against the top categories in its verification sweep. The success metric: external reviewers stop finding the same category twice. Because it's a committed file, the learning is shared by every agent session — and every human — that touches the repo.
 
-```bash
-git clone https://github.com/ohyesgocool/claude-feature-workflow.git
-cp -r claude-feature-workflow/skills/* ~/.claude/skills/
-```
+### `/land` — post-merge release engineer
 
-New Claude Code sessions pick the skills up automatically. Verify with `/plan-feature` appearing in the slash-command list.
+Merged is not shipped. `/land` executes your project's landing runbook (`docs/landing.md` — deploy order, how migrations apply, health checks, smoke checks, canary window, rollback path; drafted automatically on first run from your CI config and confirmed with you). Every step is tagged `[claude]` (executed and probed directly) or `[human]` (production access only you hold — you get the exact commands, and it waits). It deploys in order with health checks between services, holds a canary window after smoke checks, and claims **SHIPPED** only when the canary closes clean. Rollback is prepared and offered with evidence — never auto-executed.
 
 ## Configuration
 
@@ -125,13 +127,13 @@ New Claude Code sessions pick the skills up automatically. Verify with `/plan-fe
 
 | Requirement | Needed for | Where to get it |
 |---|---|---|
-| **Claude Code** (subscription or API login) | everything — planning, building, triage | [claude.com/claude-code](https://claude.com/claude-code) |
-| **`glab` CLI, authenticated** (GitLab) or **`gh` CLI** (GitHub) | raising the MR, posting/reading comments | `glab auth login` / `gh auth login` |
+| **Claude Code** | everything — planning, building, triage, orchestration | [claude.com/claude-code](https://claude.com/claude-code) |
+| **`glab` CLI** (GitLab) or **`gh` CLI** (GitHub), authenticated | MRs/PRs: raising, reading, commenting, merging | `glab auth login` / `gh auth login` |
 | **`OPENAI_API_KEY`** | the GPT reviewer in `/mr-review` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
-| **`XAI_API_KEY`** *(optional)* | the Grok quality reviewer in `/mr-review` | [console.x.ai](https://console.x.ai) |
+| **`XAI_API_KEY`** *(optional)* | the Grok reviewer in `/mr-review` | [console.x.ai](https://console.x.ai) |
 | `jq`, `curl` | `/mr-review` API calls | preinstalled on most systems / `brew install jq` |
 
-> **You do NOT need a separate Claude/Anthropic API key.** The skills run inside Claude Code under your existing login — Claude is the orchestrator, planner, builder, and triager. The only external keys are for the *independent reviewers*: OpenAI (this is also the key Codex-style GPT reviews run on — one OpenAI key covers it) and optionally xAI for Grok. With neither key set, `/plan-feature`, `/build-feature`, and `/address-review` still work fully; only `/mr-review` will ask you to configure a reviewer.
+> **You do not need a separate Claude/Anthropic API key.** The skills run inside Claude Code under your existing login. The only external keys are for the independent reviewers — and with neither set, everything except `/mr-review` still works fully.
 
 ### Reviewer settings
 
@@ -142,22 +144,18 @@ New Claude Code sessions pick the skills up automatically. Verify with `/plan-fe
 | `XAI_API_KEY` | to enable the Grok reviewer | — | quality review |
 | `XAI_MODEL` | no | `grok-4.3` | which xAI model reviews |
 | `MR_REVIEW_MAX_DIFF_CHARS` | no | `120000` | diff size limit sent to reviewers |
-
-A reviewer runs if — and only if — its key is set. Set one key or both.
+| `SHIP_MERGE_MODE` | no | `ask` | default merge gate for `/ship-feature` |
 
 ### Where to put the keys
 
-**Option A — Claude Code settings (recommended: applies to every project, lives with Claude Code):**
-
-Add an `env` block to `~/.claude/settings.json`:
+**Option A — Claude Code settings** (recommended; applies everywhere):
 
 ```json
+// ~/.claude/settings.json
 {
   "env": {
     "OPENAI_API_KEY": "sk-...",
-    "XAI_API_KEY": "xai-...",
-    "OPENAI_MODEL": "gpt-5.5",
-    "XAI_MODEL": "grok-4.3"
+    "XAI_API_KEY": "xai-..."
   }
 }
 ```
@@ -169,46 +167,24 @@ export OPENAI_API_KEY="sk-..."
 export XAI_API_KEY="xai-..."
 ```
 
-Either way: **never commit keys to a repository**, and never paste them into MR comments or issue text. The skills only ever reference them as environment variables.
+Never commit keys to a repository. The skills only ever reference them as environment variables and never print them.
 
-## Running the loop
+## FAQ
 
-The one-command way:
+**Does it work with GitHub?** Yes. The skills are written GitLab-first (`glab`), and each MR-touching skill carries a "Forge note" mapping every command to its `gh` equivalent — Claude applies the mapping automatically when the repo is on GitHub.
 
-```text
-/ship-feature Add CSV export to the reports page — finance needs month-end data in Excel
-   → answers 2 planning questions up front, then: plan → build → MR !87 → OpenAI+Grok
-     review → 3 findings fixed + 1 dismissed with reasons → re-review clean → CI green
-   → READY TO MERGE (say "merge it", or rerun with --merge=auto to skip this gate)
-```
+**Can I use just one or two skills?** Yes — each is standalone. `/address-review` works on any MR with comments (including a colleague's); `/mr-review` can review a hand-written change; `/land` runs off any merged MR.
 
-Or stage by stage, if you want control between steps:
+**What does a loop cost?** Claude usage under your existing Claude Code plan, plus reviewer API tokens per round (one OpenAI and/or one xAI call per round, diff-sized). `--max-rounds` caps it; the Ship Report shows how many rounds convergence took.
 
-```text
-/plan-feature  Add CSV export to the reports page — finance needs month-end data in Excel
-   → plan saved to docs/plans/2026-07-03-csv-export.md (answers 2 questions on the way)
+**How autonomous is it, really?** Deliberately bounded. The loop automates *iteration*; it never automates *judgment*. Human touchpoints: the planner's questions at the start (skippable with `--autonomous`), any genuine architectural concern, a red build or pipeline, and the merge gate (unless you opt into `--merge=auto`).
 
-/build-feature
-   → branch feat/csv-export, 4 phases, granular commits, MR !87 raised with
-     Problem / Solution / Technical details / Review notes
+**Can reviews run automatically on every MR instead of on demand?** Yes — the prompt templates in [`skills/mr-review/SKILL.md`](skills/mr-review/SKILL.md) are drop-in for a webhook service (receive the MR event, fetch the diff, call the reviewers, post the briefs). Pair that with `/address-review` and the loop runs itself on every MR your team opens.
 
-/mr-review
-   → OpenAI + Grok each post an implementation brief on MR !87
+## Contributing
 
-/address-review
-   → triages every finding, fixes the valid ones, replies to every thread, pushes
-
-/mr-review        # optional second pass — re-review the fixed MR until clean
-
-/land             # after merge: pipelines → migrations → deploy order → canary → SHIPPED
-```
-
-Each skill also works standalone — you can `/address-review` a colleague's MR, or `/mr-review` a hand-written change. `SHIP_MERGE_MODE=ask|auto|never` in your environment sets `/ship-feature`'s default merge behavior without passing the flag each time.
-
-## Automating the review step (optional)
-
-`/mr-review` is on-demand. If you want every MR reviewed automatically on creation, the same prompts work as a GitLab webhook service: a small FastAPI app that receives `merge_request` webhooks, fetches the diff, calls OpenAI/Grok, and posts the briefs — so reviews appear without anyone asking. The prompt templates in [`skills/mr-review/SKILL.md`](skills/mr-review/SKILL.md) are drop-in for that setup; pair the webhook with `/address-review` and the loop runs itself.
+The skills are plain Markdown prompts — reading one is understanding it, and improving one is a text edit. Issues and PRs welcome: sharper review prompts, more reviewer backends, better convergence heuristics, forge-specific fixes. If you add a reviewer, keep the contract: independent model, verbatim posting, keys via env only.
 
 ## License
 
-MIT
+[MIT](LICENSE)
