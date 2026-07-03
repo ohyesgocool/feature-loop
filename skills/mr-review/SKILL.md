@@ -32,8 +32,8 @@ auto-detect the current branch's open MR (`glab mr list --source-branch "$(git b
 
 ## Configuration
 
-All configuration is environment variables — set them in your shell profile or in the `env`
-block of `~/.claude/settings.json` (see the repo README for both options):
+All configuration is environment variables — set them in your shell profile, or in your agent's
+settings (for Claude Code, the `env` block of `~/.claude/settings.json`); see the repo README:
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|

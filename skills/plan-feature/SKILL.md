@@ -42,7 +42,8 @@ in 2–4 sentences: what is being asked for, in your own words. If the restateme
 contradiction or an impossibility, note it — it becomes a Step 4 question.
 
 Also load the house context that constrains any plan:
-- The project's `CLAUDE.md` and any global one (deployment model, style rules, commit discipline).
+- The project's agent-instructions file (`CLAUDE.md`, `AGENTS.md`, or your tool's equivalent) —
+  deployment model, style rules, commit discipline.
 - Any persistent memory or notes for constraints relevant to the touched area — deploy ordering,
   migration conventions, prior decisions on the same feature area.
 
@@ -241,7 +242,7 @@ single-phase).
 - **Feasibility is your signature.** The plan asserts you could build every phase yourself against
   the code you read. "Should be possible" is not a phase.
 - **Respect house constraints.** Migration conventions, deploy ordering, test policy, branching
-  strategy, data-privacy rules — read the project's `CLAUDE.md` and encode its constraints in the
-  plan so the coding agent doesn't rediscover them.
+  strategy, data-privacy rules — read the project's agent-instructions file (`CLAUDE.md` /
+  `AGENTS.md`) and encode its constraints in the plan so the coding agent doesn't rediscover them.
 - **The plan is the deliverable, not the build.** This skill never starts implementing. It ends at
   the saved file and the handoff line.
