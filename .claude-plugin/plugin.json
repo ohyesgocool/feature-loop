@@ -1,7 +1,7 @@
 {
   "name": "feature-workflow",
-  "version": "2.1.0",
-  "description": "Feature lifecycle skills for AI coding agents: /ship-feature (the whole loop, crash-safe with --resume, merge gate), /plan-feature, /build-feature, /mr-review (independent external reviewers with context pack, static pre-pass, delta re-review), /address-review (self-learning blind-spot ledger), /land (post-merge runbook), /loop-stats (telemetry: convergence, reviewer scorecard, cost, ledger effectiveness)",
+  "version": "3.0.0",
+  "description": "Feature lifecycle skills for AI coding agents: /ship-feature (the whole loop from a Jira ticket key or a brief; entry-state aware, crash-safe with --resume, autonomous merge gate), /ticket-intake (Jira issue → numbered requirements with verbatim quotes), /plan-feature, /build-feature, /mr-review (independent external reviewers with context pack, static pre-pass, delta re-review), /address-review (honest triage and resolution), /resolve-conflicts (automatic conflict resolution that keeps review threads anchored), /ticket-report (one Jira comment with per-requirement coverage and a status transition that never claims Done on partial work), /land (post-merge runbook)",
   "author": {
     "name": "Gokul",
     "url": "https://github.com/ohyesgocool"
