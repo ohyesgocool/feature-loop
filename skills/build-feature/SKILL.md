@@ -71,12 +71,6 @@ Never build on a stale base and never branch off another feature branch:
 
 The plan was written against the code as it was; verify it still holds before writing anything:
 
-- **Read the blind-spot ledger first**: if `docs/reviews/blind-spots.md` exists, read it whole.
-  It holds the "why I missed it" lessons from every past review round — your historically
-  most-missed failure modes, phrased as rules. Turn the top categories into this build's
-  personal checklist; the verification sweep will check the diff against them before you can
-  declare done. Ten seconds of reading here is cheaper than a review round later.
-
 - Open every file the phases cite and confirm the anchors (`file:line`) still match — main may
   have moved since planning. Trivial drift (line numbers, renames) you absorb silently; real drift
   (the integration point changed shape, the utility was removed) gets recorded as a **deviation**
@@ -181,11 +175,6 @@ After the last phase, verify the whole, not just the parts:
    just green tests.
 4. **Plan reconciliation**: walk the plan's phase list and UI inventory once more; anything
    skipped, deferred, or deviated is stated in the report — never silently dropped.
-5. **Ledger pass**: walk the top blind-spot categories from `docs/reviews/blind-spots.md`
-   (if present) against your diff — one deliberate look for your historically most-missed
-   failure modes (error paths, edge cases, consistency drift, …) while the code is still
-   cheap to fix. The point of the ledger is that external reviewers stop finding the same
-   category twice.
 
 ### Step 6: Push, raise the MR, and report
 
