@@ -143,8 +143,7 @@ Same shape for Grok against `https://api.x.ai/v1/chat/completions` with `$XAI_AP
 
 Extract each brief: `jq -r '.choices[0].message.content' response-X.json > brief-X.md`.
 Also capture usage for telemetry — `jq '.usage // null' response-X.json` — providers differ in
-fields; record what exists, `null` for what doesn't. Tokens appear in the final report and
-flow into the loop's metrics when running under `/ship-feature`.
+fields; record what exists, `null` for what doesn't. Tokens appear in the final report.
 
 **Validate before posting**: if the response carries an `.error`, or the brief is empty or
 doesn't start with the expected `## … review` heading, report that reviewer as failed (with the

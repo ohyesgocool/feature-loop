@@ -68,7 +68,8 @@ stage). Shape:
 ```
 
 Recommend adding `.loop/` to the project's `.gitignore` — state is transient scaffolding, not
-history (metrics are recorded separately and durably; see the Ship Report).
+history. The only files this loop commits to the user's repo are the plan under `docs/plans/`
+and, for `/land`, `docs/landing.md`.
 
 **On start:** if a state file exists for the current branch, say so and **resume from its
 recorded stage and round** — `--resume` just makes the intent explicit. A new brief while
@@ -165,20 +166,6 @@ Then act per the flag:
   `merged`, then report. If the merge API refuses (permissions, approvals required, protected
   branch rules), report the refusal verbatim — don't try to bypass review requirements.
 - **`never`:** report and end with the MR open — useful when merging is someone else's call.
-
-## Record the run, then report
-
-On every exit — merged, ready, or stopped — append one line to `docs/loops/metrics.jsonl`,
-built from the state file:
-
-```json
-{"ts":"<iso8601>","type":"run","feature":"csv-export","mr":"!87","outcome":"merged|ready|stopped:<reason>","rounds":2,"lead_time_min":94,"tokens":{"openai":48210,"xai":39102},"flags":{"merge":"ask","max_rounds":3}}
-```
-
-Commit it as `docs: record loop metrics` when your workflow permits a direct docs commit
-(append-only JSONL merges trivially); otherwise leave it staged and say so in the report.
-`/loop-stats` renders the trends. A loop that doesn't measure itself can't prove it's worth
-running.
 
 ## Ship Report (final output, always)
 
