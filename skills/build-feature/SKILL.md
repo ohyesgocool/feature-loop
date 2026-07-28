@@ -112,7 +112,8 @@ For each phase, in order, without pausing between green phases:
      body after a blank line, wrapped at 72 characters; most granular commits need no body.
    Never commit `.env`, secrets, or generated noise.
 6. **Phase report** (a few lines, printed as you go): what was built, files touched, gate status,
-   plus any entries added to the hack ledger or synchronization ledger this phase.
+   plus any entries added to the hack ledger or synchronization ledger this phase — and, on a
+   ticket-driven build, the REQ ids this phase closed.
 
 ## Coding Standards
 
@@ -174,7 +175,14 @@ After the last phase, verify the whole, not just the parts:
 3. **Drive it**: exercise the feature's main flow end to end — the plan's success criteria, not
    just green tests.
 4. **Plan reconciliation**: walk the plan's phase list and UI inventory once more; anything
-   skipped, deferred, or deviated is stated in the report — never silently dropped.
+   skipped, deferred, or deviated is stated in the report — never silently dropped. On a
+   ticket-driven build, fill the Requirement coverage table now: every REQ gets a status and an
+   evidence cell before you write a word of the report.
+5. **Requirement sweep** (ticket-driven builds): for every REQ you marked `done`, go and find
+   the evidence — open the file at the line you cited, name the test that proves it. This is a
+   deliberate pass against the pull to mark a requirement done because a phase that mentioned it
+   completed. Anything you cannot evidence drops to `partial` with the honest reason. The
+   coverage table is what the ticket's reporter reads; it is only worth reading if you checked.
 
 ### Step 6: Push, raise the MR, and report
 
@@ -194,12 +202,14 @@ plan". 1–3 sentences a reviewer can judge the whole MR against.}
 
 ## Solution
 {The approach chosen to solve it, in plain terms — and what was deliberately NOT done (cut or
-deferred, per the plan) so a reviewer doesn't flag it as forgotten.}
+deferred, per the plan), naming the REQ ids on a ticket-driven MR, so a reviewer doesn't flag it
+as forgotten.}
 
 ## Technical details
 {What was actually done, concretely: key files/modules touched, schema changes and how to apply
 them, new endpoints/jobs/components, entries from the synchronization ledger, deploy ordering if
-cross-repo.}
+cross-repo. On a ticket-driven MR the Requirement coverage table goes here — it stays with the
+MR, which outlives the local run state.}
 
 ## Review notes
 {What reviewers should specifically look at or know before reviewing: the riskiest change, any
@@ -218,6 +228,22 @@ Gates: type-check ✅ · tests ✅ ({n} passed) · build ✅ · consumer audit �
 ### Phases
 1. {phase} — done ({commit sha}) {· deviation: …}
 2. …
+
+### Requirement coverage ({KEY})
+{Ticket-driven builds only.}
+
+| REQ | Requirement | Status | Evidence |
+|---|---|---|---|
+| REQ-1 | {one line} | done | `app/api/export.py:42` · `a1b2c3d` · test `test_export_csv_headers` |
+| REQ-2 | {one line} | partial | shipped {x}; {y} not covered — {why} |
+| REQ-5 | {one line} | not done | plan Won't-do: {reason} |
+| REQ-6 | {one line} | not done | discovered blocker: {what the code showed that the plan didn't} |
+
+Status vocabulary is exactly `done` / `partial` / `not done`. **`done` requires evidence** — a
+`file:line`, a commit sha, and a passing test name. A `done` with no evidence is downgraded to
+`partial`; "I believe it works" is not evidence.
+
+Unmapped source units carried from the intake: {verbatim, or "none"}
 
 ### Hack ledger
 {Each flagged hack: file:line — constraint — clean alternative. Or "empty" — the goal.}
@@ -272,3 +298,6 @@ migrations yourself.
 - **Done means verified.** The feature was driven end to end against the plan's success criteria,
   every consumer surface was grepped, and the report states what was NOT done as clearly as what
   was.
+- **A requirement not delivered is stated, never omitted.** On a ticket-driven build the coverage
+  table is what the ticket's reporter actually reads. `not done`, with a real reason, is a
+  professional outcome; a `done` you can't evidence is a lie the ticket comment will repeat.
