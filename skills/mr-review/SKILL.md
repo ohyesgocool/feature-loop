@@ -69,16 +69,19 @@ inside curl headers.
 
 **Re-review rounds (delta mode).** Before fetching the diff, scan the MR's existing comments
 for the latest brief of ours carrying a `Reviewed: <sha> · round <r>` footer. If one exists and
-`<sha>` is a real commit on the branch, this is round r+1 — review the *change since the last
-review*, not the whole MR again:
+`git merge-base --is-ancestor <sha> <head>` succeeds, this is round r+1 — review the *change
+since the last review*, not the whole MR again:
 
 - The diff sent to reviewers is **only the delta**: `git fetch` the branch, then
   `git diff <sha>..<head>`. Cheaper rounds, and reviewers see exactly what moved.
 - Collect **prior findings and their outcomes** from the review threads (the `/address-review`
   replies: `✅ Fixed in <sha> — …`, `Not changing — …`) and fill the delta preamble template
   (end of this file), so reviewers verify fixes instead of re-raising them.
-- If the footer is missing, garbled, or the sha is unknown to the repo, **fall back silently to
-  a full review** — a wrong delta is worse than a redundant full pass.
+- If the footer is missing, garbled, or the sha **is not an ancestor of head**, fall back
+  silently to a **full review** — a wrong delta is worse than a redundant full pass. Ancestry,
+  not existence, is the test: after a rebase or a force-push the old sha is still a real object
+  in the repo but no longer on the branch, and `git diff <sha>..<head>` would hand the reviewer
+  the entire rewrite as "the delta".
 
 ### Step 2: Static pre-pass — free findings first
 

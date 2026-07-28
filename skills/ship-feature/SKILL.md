@@ -126,8 +126,22 @@ The loop **converges** when a full round shows the work is clean:
    "No blocking issues"; and
 2. every review thread on the MR has been replied to (resolved or explicitly deferred with
    an owner); and
-3. the MR's head pipeline is **green** (poll `glab api "projects/:id/merge_requests/<iid>"` →
-   `.head_pipeline.status` until it settles; a failed pipeline is a red build → hard stop).
+3. the MR's head pipeline is **green**, by the four-part definition below.
+
+**What "green" means** — poll `glab api "projects/:id/merge_requests/<iid>"` until *all four*
+hold. Anything less is not green:
+
+- `.head_pipeline != null` — **null is not green.** It means no pipeline exists for this commit.
+- `.head_pipeline.sha == .diff_refs.head_sha` — the pipeline is *for this commit*.
+- `.diff_refs.head_sha` equals `git rev-parse HEAD` on the branch — nothing landed behind you.
+- `.head_pipeline.status == "success"` **exactly**. `manual`, `blocked`, `scheduled`,
+  `waiting_for_resource`, `created`, and `skipped` are not `success`.
+
+The sha checks are the load-bearing ones. Right after `/address-review` pushes, GitLab has not
+yet created the pipeline for the new commit, so `head_pipeline` still describes the **previous**
+one — and reports `success`. Reading that as green merges code that was never built. Never
+trust a poll taken within ~30s of your own push without re-checking sha equality. A pipeline
+that settles on `failed` is a red build → hard stop.
 
 Not converged → increment the round and go back to Stage 3, subject to the safeguards below.
 
