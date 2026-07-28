@@ -402,9 +402,16 @@ verification, links) and transitions the ticket: a Done-category status only whe
 requirement is `done` with evidence and the unmapped-source list is clean; otherwise a
 non-Done status naming the gap.
 
-It also runs on the non-merged exits — `--merge=never`, a non-converged exit, a hand-off. The
-comment then says the MR is open and why, and the transition takes the partial branch. **A hard
-stop, a max-rounds exit or a no-progress exit never transitions to Done.**
+It also runs on the exits where the loop is genuinely **finished without a merge** —
+`--merge=never`, a non-converged exit, a hard stop, a hand-off. The comment then says the MR is
+open and why, and the transition takes the partial branch. **A hard stop, a max-rounds exit or a
+no-progress exit never transitions to Done.**
+
+**It does not run at a `--merge=ask` gate.** That gate is a *pause*, not an exit: the loop is
+waiting for a human to say "merge it", and the run continues afterwards. Since the loop posts
+exactly one comment per run, spending it on "the MR is open, awaiting approval" would leave no
+comment for the outcome — and the ticket would never reach Done. Report after the merge the user
+approved, or on a real exit. Not both, and not before.
 
 ## Ship Report (final output, always)
 
