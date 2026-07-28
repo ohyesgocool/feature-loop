@@ -60,11 +60,24 @@ Never build on a stale base and never branch off another feature branch:
 1. `git status` — the tree must be clean. If it's dirty with work that isn't yours, **stop and
    report** (another session may own this checkout; a worktree may be the answer). Don't stash
    someone else's work.
-2. `git checkout main && git pull` — latest main, no exceptions.
-3. `git checkout -b feat/{plan-slug}` — named after the plan. All work lands via a branch and an
-   MR (Step 6), even routine single-phase work; the branch costs nothing and protects main from a
-   half-done state.
-4. If the feature spans repos, repeat per repo, and honor the plan's deploy ordering when you
+2. `git fetch origin --prune`, then **check whether the branch already exists** — resuming work
+   is not the same as starting it, and `git checkout -b` on an existing branch either fails
+   outright or silently creates a divergent one from fresh main:
+   - **Exists on the remote** → `git checkout -B feat/{slug} origin/feat/{slug}`. Resume, don't
+     redo. Never re-create it from main and never force-push over it.
+   - **Local only, no remote** → inspect it and **stop**, reporting what's on it. It's an
+     abandoned attempt or another session's work; don't push it and don't delete it.
+   - **Neither** → `git checkout main && git pull` for latest main, no exceptions, then
+     `git checkout -b feat/{plan-slug}` — named after the plan (`feat/{KEY}-{slug}` on a
+     ticket-driven build).
+3. **On any branch you resumed**, check whose commits are on it:
+   `git log --format='%ae' origin/{base}..HEAD | sort -u`. Any author that isn't this loop's
+   identity → **stop**. That is Step 2.1's "don't stash someone else's work" applied to history.
+   If HEAD and `origin/{branch}` have diverged, **stop** — never `--force` your way out of it.
+4. All work lands via a branch and an MR (Step 6), even routine single-phase work; the branch
+   costs nothing and protects main from a half-done state. Never run with `main`, `master`, or
+   any protected branch as the source branch.
+5. If the feature spans repos, repeat per repo, and honor the plan's deploy ordering when you
    later push (e.g. backend before frontend).
 
 ### Step 3: Re-ground every phase in the current code
@@ -274,8 +287,10 @@ migrations yourself.
 
 ## Rules
 
-- **Fresh main, always.** Every feature branch starts from just-pulled main. Building on a stale
-  base or a sibling branch is a setup error, not a shortcut.
+- **Fresh main, always — unless the branch already exists.** A new feature branch starts from
+  just-pulled main; building on a stale base or a sibling branch is a setup error, not a
+  shortcut. An *existing* remote branch is checked out and resumed, never re-created and never
+  force-pushed over — and a branch carrying commits by anyone else stops the run.
 - **The plan is read whole, then followed — or challenged, never silently edited.** Faithful
   execution plus recorded deviations plus the architectural stop. The one thing you may not do is
   build something other than the plan without saying so.
