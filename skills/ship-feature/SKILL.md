@@ -347,7 +347,7 @@ Not converged → increment the round and go back to Stage 3, subject to the saf
 - **Cost awareness.** Each round spends reviewer API tokens. Note the round count in the final
   report so the user sees what convergence cost.
 
-### Merge gate — on convergence
+### Stage 5 — Merge gate, on convergence
 
 First run the readiness checklist (all must hold, whatever the merge mode):
 

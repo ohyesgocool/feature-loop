@@ -72,7 +72,8 @@ Never build on a stale base and never branch off another feature branch:
      ticket-driven build).
 3. **On any branch you resumed**, check whose commits are on it:
    `git log --format='%ae' origin/{base}..HEAD | sort -u`. Any author that isn't this loop's
-   identity → **stop**. That is Step 2.1's "don't stash someone else's work" applied to history.
+   identity → **stop**. That is the "don't stash someone else's work" rule above, applied to
+   history rather than to the working tree.
    If HEAD and `origin/{branch}` have diverged, **stop** — never `--force` your way out of it.
 4. All work lands via a branch and an MR (Step 6), even routine single-phase work; the branch
    costs nothing and protects main from a half-done state. Never run with `main`, `master`, or
