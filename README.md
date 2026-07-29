@@ -34,18 +34,22 @@
 
 AI coding agents are good at writing code and terrible at grading their own homework. Feature Loop structures the work the way a disciplined engineering team would:
 
+- **A business analyst** who reads the ticket whole — including the comment from three weeks ago that quietly changed the scope — and turns it into numbered requirements somebody can be held to (`/ticket-intake`)
 - **A product owner** who studies the codebase and challenges the brief before anything is built (`/plan-feature`)
 - **An engineer** who executes the plan surgically, commits granularly, and always ships the MR with a reviewable description (`/build-feature`)
 - **Independent reviewers** — *different models* (OpenAI GPT, xAI Grok) that never saw the code being written, so they don't share the author's blind spots (`/mr-review`)
 - **An honest author response** — every review comment triaged against the real diff, fixed or dismissed *with reasons, on the record* (`/address-review`)
+- **Someone who unblocks the merge** when main moves underneath you — integrating the target branch without a force-push, and refusing to guess on the conflicts that aren't safe to guess at (`/resolve-conflicts`)
 - **A release engineer** who takes the merge to production off a written runbook and doesn't call it shipped until the canary is clean (`/land`)
 - **A written-back status** — one Jira comment naming what was delivered per requirement, with evidence, and explicitly what the ticket asked for that was *not* built; the ticket moves to Done only when everything was covered (`/ticket-report`)
 
 `/ship-feature` chains the whole sequence into a self-running loop with an explicit merge gate. Every skill also works standalone.
 
+**What it writes to your repo:** the plan under `docs/plans/`, and `docs/landing.md` if you use `/land`. That's the whole list. Run state and the run's requirements live in `.loop/` (gitignored); the loop keeps no telemetry, no journal, and no learning file of its own — none of that belongs in your history or in the diff your reviewers are paid to read.
+
 ## Works with
 
-The nine skills are plain-Markdown operating procedures in the Agent Skills format (a folder with a `SKILL.md`). There is nothing model-specific in them — any coding agent that can follow a Markdown procedure and run shell commands can execute the loop:
+The nine skills are plain-Markdown operating procedures in the Agent Skills format (a folder with a `SKILL.md`). Nothing in them is model-specific, and only the two ticket skills are harness-specific (see the exception below) — so any coding agent that can follow a Markdown procedure and run shell commands can execute the loop:
 
 - **Claude Code** — supported natively: install as a plugin or drop the folders into `~/.claude/skills/` (see below).
 - **Other agents** (Cursor, OpenAI Codex CLI, Gemini CLI, OpenCode, …) — point your agent at `skills/<name>/SKILL.md` as the instruction source for that step: load it as a custom command, rule, or prompt file per your tool's convention. Where a skill mentions an optional harness feature (a task tracker, parallel search subagents), it degrades gracefully to plain equivalents.
@@ -119,7 +123,7 @@ Runs intake → plan → build → review → address, re-reviewing until **conv
 | `--review-on-entry` | review even when entering on an MR that already exists |
 | `--resume` | continue an interrupted loop from its recorded stage and round |
 
-The loop is **crash-safe**: state is persisted to `.loop/<slug>.state.json` (gitignore `.loop/`) at every stage boundary, every stage is idempotent on re-entry, and a loop that died with its session resumes instead of restarting.
+The loop is **crash-safe**: state is persisted to `.loop/<slug>.state.json` — keyed by the ticket in ticket mode, since the run begins on `main` with no branch yet — at every stage boundary (gitignore `.loop/`). Every stage is idempotent on re-entry, a loop that died with its session resumes instead of restarting, and a second loop in the same working copy stops rather than checking out `main` from under the first.
 
 Built-in safeguards: **no-progress detection** (a finding that survives two rounds stops the loop instead of thrashing), **honest convergence** (threads are never resolved just to make the loop exit), a **four-part green-pipeline check** (a pipeline is green only when it exists, is *for this commit*, matches the branch head, and reads exactly `success` — polling straight after a push otherwise returns the *previous* commit's status), and the sub-skills' hard stops (architectural concern, red build, red pipeline, unresolvable conflict).
 
@@ -127,11 +131,13 @@ Built-in safeguards: **no-progress detection** (a finding that survives two roun
 
 ### `/plan-feature` — product owner + architect
 
-Give it a few paragraphs on what you want. It studies the codebase first (never plans from memory — every integration point cited as `file:line`), frames the feature by **what the user achieves** rather than what gets built, asks only the genuinely blocking questions (batched, each with a recommended answer), audits every proposed UI element against *less is more*, proves the design is buildable against real code, and writes a phased plan where each phase is small and self-contained enough for a coding agent to execute without coming back with questions. Output: a plan file in `docs/plans/`.
+Give it a few paragraphs on what you want — or a ticket's requirements, which it treats as a scope contract it must disposition in full. It studies the codebase first (never plans from memory — every integration point cited as `file:line`), frames the feature by **what the user achieves** rather than what gets built, asks only the genuinely blocking questions (batched, each with a recommended answer), audits every proposed UI element against *less is more*, proves the design is buildable against real code, and writes a phased plan where each phase is small and self-contained enough for a coding agent to execute without coming back with questions. Output: a plan file in `docs/plans/`.
+
+On an autonomous run it answers its own questions and records each as a Decision you can veto by reading — except in the protected categories (authorization, retention, money, PII, external contracts, auth), where it stops instead. A wrong default there is a security bug with a straight path to production, and "who sees what" is exactly what this gate exists for.
 
 ### `/build-feature` — disciplined implementer
 
-Branches **fresh from main**, reads the plan line by line, re-grounds every phase in the current code, then builds with clean-code discipline: SOLID applied not recited, reuse before writing (more code = more maintenance surface), surgical changes only. Two ledgers keep it honest — a **hack ledger** (a forced workaround exists only with a `HACK:` comment naming the constraint) and a **synchronization ledger** (async by default; every deliberate sync point records the invariant it protects). Every phase gates on type-check + tests; commits are granular with 50-character imperative subjects (the classic seven rules); the finish line is always an MR with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
+Branches **fresh from main** — or checks out and resumes the branch if one already exists, never re-creating it and never force-pushing over someone's work. Reads the plan line by line, re-grounds every phase in the current code, then builds with clean-code discipline: SOLID applied not recited, reuse before writing (more code = more maintenance surface), surgical changes only. Two ledgers keep it honest — a **hack ledger** (a forced workaround exists only with a `HACK:` comment naming the constraint) and a **synchronization ledger** (async by default; every deliberate sync point records the invariant it protects). Every phase gates on type-check + tests; commits are granular with 50-character imperative subjects (the classic seven rules); the finish line is always an MR with a fixed four-section description: **Problem / Solution / Technical details / Review notes**.
 
 ### `/mr-review` — independent external reviewers
 
