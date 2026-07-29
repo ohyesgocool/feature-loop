@@ -8,10 +8,11 @@ command plus a **checkpoint** (what you should see, and what to do if you don't)
 > Steps marked **[human]** need input only your user can provide (accounts, API keys,
 > browser logins); ask for exactly that input, then continue.
 
-**What you'll have at the end:** seven slash-skills in your coding agent
-(`/ship-feature`, `/plan-feature`, `/build-feature`, `/mr-review`, `/address-review`,
-`/land`, `/loop-stats`), a forge CLI that can raise and comment on MRs/PRs, and at least one
-external reviewer wired up.
+**What you'll have at the end:** nine slash-skills in your coding agent
+(`/ship-feature`, `/ticket-intake`, `/plan-feature`, `/build-feature`, `/mr-review`,
+`/address-review`, `/resolve-conflicts`, `/ticket-report`, `/land`), a forge CLI that can raise
+and comment on MRs/PRs, at least one external reviewer wired up, and — if you want ticket-driven
+runs — an authorized Atlassian MCP connection.
 
 ---
 
@@ -97,10 +98,11 @@ cp -r /tmp/feature-loop/skills/* ~/.claude/skills/
 Start a **new** Claude Code session (skills load at session start), then type `/` and look
 for the skills, or ask: *"Do you have the /ship-feature skill?"*
 
-**Checkpoint:** `/ship-feature`, `/plan-feature`, `/build-feature`, `/mr-review`,
-`/address-review`, `/land`, and `/loop-stats` are all available.
+**Checkpoint:** `/ship-feature`, `/ticket-intake`, `/plan-feature`, `/build-feature`,
+`/mr-review`, `/address-review`, `/resolve-conflicts`, `/ticket-report` and `/land` are all
+available.
 **If not (Option A):** run `/plugin` and confirm `feature-workflow` shows as installed and
-enabled. **If not (Option B):** `ls ~/.claude/skills/` must list the seven folders, each
+enabled. **If not (Option B):** `ls ~/.claude/skills/` must list the nine folders, each
 containing a `SKILL.md`; re-run the copy if any are missing.
 
 ---
@@ -170,6 +172,42 @@ export SHIP_MERGE_MODE="ask"               # default: ask | auto | never
 
 ---
 
+## Part 3.5 — Connect Jira (optional — needed only for `/ship-feature PROJ-123`)
+
+Skip this entire part if you drive the loop from written briefs. Nothing else depends on it.
+
+### Step 3.5.1: Register the Atlassian MCP server
+
+```bash
+claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp/authv2 --scope user
+```
+
+### Step 3.5.2 [human]: Authorize it
+
+Run `/mcp` in an **interactive** Claude Code session, select `atlassian`, and complete the
+browser login. This is OAuth — it cannot be completed in a headless or piped session, and there
+is no API-token alternative in these skills.
+
+**Checkpoint:** ask the agent *"list your Atlassian tools"*. You should see `getJiraIssue`,
+`getTransitionsForJiraIssue`, `addCommentToJiraIssue`, `transitionJiraIssue` and
+`getAccessibleAtlassianResources`.
+**If not:** `/mcp` will show the server as needing authorization — re-run it. Until the tools
+bind, `/ticket-intake` stops with this command rather than guessing at the ticket's contents.
+
+### Step 3.5.3: Optional Jira overrides
+
+```bash
+export JIRA_SITE_URL="https://yourcompany.atlassian.net"  # only for multi-site accounts
+export JIRA_STATUS_DONE="Ready for release"               # default: Done > Closed > Resolved
+export JIRA_STATUS_PARTIAL="Needs Info"                   # default: In Review > In Progress
+```
+
+These express a *preference* among the transitions your workflow actually offers — they never
+invent one. If your project's Done sits behind `/land` rather than the merge, set
+`JIRA_STATUS_DONE` to your pre-release status and let `/land` finish the job.
+
+---
+
 ## Part 4 — Optional but recommended
 
 ### Step 4.1: Static analysis tools
@@ -190,8 +228,8 @@ In each repo where you'll run loops:
 echo ".loop/" >> .gitignore
 ```
 
-(`.loop/` holds transient resume-state; metrics and the blind-spot ledger are separate,
-committed files under `docs/`.)
+(`.loop/` holds transient resume-state and the run's requirements list. The only files Feature
+Loop commits to your repo are plans under `docs/plans/` and, for `/land`, `docs/landing.md`.)
 
 ---
 
@@ -222,14 +260,32 @@ comments → findings triaged and fixed → **READY TO MERGE** prompt.
 always Step 3.3 unfinished. Everything up to the MR still stands; fix the key and run
 `/mr-review` on the open MR.
 
-### Step 5.3: After a few loops
+### Step 5.3: First ticket-driven run (only if you did Part 3.5)
+
+Start read-only. This touches nothing and verifies the whole Jira wiring:
 
 ```
-/loop-stats
+/ticket-intake PROJ-123
 ```
 
-**Checkpoint:** delivery/scorecard/cost/learning tables from `docs/loops/metrics.jsonl`.
-With fewer than 3 runs it will tell you the sample is too small — that's correct behavior.
+**Checkpoint:** it prints the ticket's status and comment counts, a numbered requirements table
+where every row carries a verbatim quote from the ticket, and a "Sources not mapped to a
+requirement" block naming anything it didn't turn into a requirement (including attachments,
+which it never downloads). Read that last block — it's where a misread ticket shows up.
+**If it stops instead:** it will name the reason — unauthorized MCP (redo Step 3.5.2), an
+ambiguous Atlassian site (set `JIRA_SITE_URL`), or an Epic (name a child issue).
+
+Then a cautious end-to-end, with the merge gate closed:
+
+```
+/ship-feature PROJ-123 --merge=never
+```
+
+**Checkpoint:** branch `feat/PROJ-123-<slug>`, a plan under `docs/plans/` containing a
+**Requirements coverage** section, an MR whose Technical details carry the per-requirement
+table, reviewer briefs posted and triaged — and the run ending with the MR open, plus a Jira
+comment saying so. Once that reads right, drop the flag: `/ship-feature PROJ-123` runs the same
+loop through the merge and moves the ticket.
 
 ---
 
@@ -255,7 +311,12 @@ The skills are plain Markdown procedures; nothing in them is Claude-specific.
 | Reviewer call fails with model error | account lacks the default model | set `OPENAI_MODEL` / `XAI_MODEL` to a model you can access |
 | MR steps fail with 401/404 | forge CLI not authenticated for this host | Step 1.4 with the right `--hostname` |
 | Loop restarted from zero after a crash | state file was deleted or branch changed | keep `.loop/` between sessions; resume runs on the feature branch |
-| `/loop-stats` says no data | no loops recorded yet | run loops; metrics appear in `docs/loops/metrics.jsonl` |
+| `/ticket-intake` says no Atlassian tools | MCP server registered but not authorized | `/mcp` in an interactive session (Step 3.5.2); it will not fall back to guessing |
+| It picked the wrong Jira site | multi-site Atlassian account | set `JIRA_SITE_URL` to the site you meant |
+| Ticket didn't move to Done | coverage was partial, or the workflow has no reachable Done from the current status | read the comment's Verification line — it names which, and lists the transitions that *were* available |
+| Ticket transition needs a field | the Done screen requires a resolution / fix version | the report names the exact fields; set them by hand once, or point `JIRA_STATUS_DONE` at a status without a screen |
+| `/resolve-conflicts` stopped instead of resolving | hard-stop class: lockfile, migration, binary, delete/rename | resolve by hand — the branch is exactly as it was, and the report prints the anchor sha |
+| Two open MRs for one ticket | a stale branch was never closed | close or merge one; the loop refuses to guess which is "the" MR |
 
 Stuck on something this file doesn't cover? Open an issue — see
 [CONTRIBUTING.md](CONTRIBUTING.md) for what to include.
